@@ -53,12 +53,32 @@ func queryServers(serverList []string, dnsRequest []byte) (response []byte, err 
 }
 
 func extractAuthorityServers(dnsMessage dns.Message) (serverList []string) {
-	for _, authority := range dnsMessage.NameServers {
-		if authority.RType == dns.NS {
-			nsRecord := authority.RData.String()
-			_, err := netip.ParseAddr(nsRecord)
+	// for _, authority := range dnsMessage.NameServers {
+	// 	if authority.RType == dns.NS {
+	// 		fmt.Printf("++ found a nameserver record: %d\n", authority.RType)
+	// 		nsRecord := authority.RData.String()
+	// 		fmt.Printf("++ NS RECORD: %s\n", nsRecord)
+	// 		ip, err := netip.ParseAddr(nsRecord)
+	// 		fmt.Printf("++ parsed IP: %v\n", ip)
+	// 		if err == nil {
+	// 			serverList = append(serverList, nsRecord)
+
+	// 			fmt.Printf("++ serverList: %v\n", serverList)
+
+	// 		}
+	// 	}
+	// }
+	for _, additional := range dnsMessage.Additionals {
+		if additional.RType == dns.A {
+			fmt.Printf("++ found a nameserver record: %d\n", additional.RType)
+			aRecord := additional.RData.String()
+			fmt.Printf("++ NS RECORD: %s\n", aRecord)
+			ip, err := netip.ParseAddr(aRecord)
+			fmt.Printf("++ parsed IP: %v\n", ip)
 			if err == nil {
-				serverList = append(serverList, nsRecord)
+				serverList = append(serverList, aRecord)
+
+				fmt.Printf("++ serverList: %v\n", serverList)
 
 			}
 		}
