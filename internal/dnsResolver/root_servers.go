@@ -8,9 +8,12 @@ import (
 	"github.com/mcombeau/dns-tools/dns"
 )
 
+const publicDNSServer = "1.1.1.1:53"
+
 var rootServers []string
 
 func FetchRootServers() {
+	// TODO: Maybe run this periodically to update root servers?
 	rootServerNames := []string{
 		"a.root-servers.net.",
 		"b.root-servers.net.",
@@ -46,8 +49,6 @@ func FetchRootServers() {
 }
 
 func resolveWithPublicDNS(serverName string) (ip string, err error) {
-	publicDNSServer := "1.1.1.1:53"
-
 	conn, err := net.Dial("udp", publicDNSServer)
 	if err != nil {
 		return "", err

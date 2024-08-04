@@ -6,10 +6,15 @@ import (
 	"net"
 )
 
+const DNSResolverIP = "0.0.0.0"
+const DNSResolverPort = 5553
+
+const MaxUDPMessageLength = 512
+
 func StartUDPServer() (err error) {
 	addr := net.UDPAddr{
-		Port: 5553,
-		IP:   net.ParseIP("0.0.0.0"),
+		Port: DNSResolverPort,
+		IP:   net.ParseIP(DNSResolverIP),
 	}
 
 	conn, err := net.ListenUDP("udp", &addr)
@@ -20,9 +25,9 @@ func StartUDPServer() (err error) {
 
 	log.Printf("DNS resolver server listening on port: %d", addr.Port)
 
-	buffer := make([]byte, 512)
+	buffer := [MaxUDPMessageLength]byte{}
 	for {
-		_, clientAddr, err := conn.ReadFromUDP(buffer)
+		_, clientAddr, err := conn.ReadFromUDP(buffer[:])
 		if err != nil {
 			log.Printf("error reading from UDP: %v", err)
 			continue
