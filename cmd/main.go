@@ -1,7 +1,13 @@
 package main
 
+import (
+	"log"
+
+	"github.com/mcombeau/dns-resolver/internal/dnsServer"
+)
+
 // TODO: Gameplan:
-// - Setup server as listener on port 5353
+// - Setup server as listener on port 5553 (arbitrary choice of port)
 // - Query public DNS like 8.8.8.8 or 1.1.1.1 for root servers
 // - When a query arrives:
 // 		- query root servers, parse response,
@@ -12,5 +18,8 @@ package main
 //		- handle multiple concurrent client requests
 
 func main() {
-	err := dnsServer.startUDPServer()
+	err := dnsServer.StartUDPServer()
+	if err != nil {
+		log.Fatalf("failed to start UDP server: %v", err)
+	}
 }
