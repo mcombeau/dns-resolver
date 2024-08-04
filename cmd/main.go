@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/mcombeau/dns-resolver/internal/dnsResolver"
 	"github.com/mcombeau/dns-resolver/internal/dnsServer"
 )
 
@@ -18,6 +19,8 @@ import (
 //		- handle multiple concurrent client requests
 
 func main() {
+	dnsResolver.FetchRootServers()
+
 	err := dnsServer.StartUDPServer()
 	if err != nil {
 		log.Fatalf("failed to start UDP server: %v", err)
