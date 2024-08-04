@@ -12,4 +12,5 @@ package main
 //		- handle multiple concurrent client requests
 
 func main() {
+	err := dnsServer.startUDPServer()
 }
