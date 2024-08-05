@@ -18,12 +18,19 @@ func ResolveDNSQuery(dnsRequest []byte) (response []byte, err error) {
 		return nil, err
 	}
 
-	return response, fmt.Errorf("failed to get responses from any root server")
+	return response, nil
 }
 
 func queryServers(serverList []string, dnsRequest []byte) (response []byte, err error) {
+	dnsParsedRequest, err := dns.DecodeMessage(response)
+	if err != nil {
+		log.Printf("failed to parse client request: %v", err)
+		return nil, err
+	}
+	domainQuery := dnsParsedRequest.Questions[0].Name
+
 	for _, server := range serverList {
-		fmt.Printf("============ QUERYING SERVER %s\n", server)
+		log.Printf("--> Querying server %s for %s", server, domainQuery)
 		response, err := sendDNSQuery(server, dnsRequest)
 		if err != nil {
 			log.Printf("failed to query server %s: %v", server, err)
@@ -36,14 +43,17 @@ func queryServers(serverList []string, dnsRequest []byte) (response []byte, err 
 			return nil, err
 		}
 
-		if len(dnsParsedResponse.Answers) > 0 {
-			fmt.Print("-------- GOT ANSWER\n")
-			dns.PrintMessage(dnsParsedResponse)
+		if dnsParsedResponse.Header.AnswerRRCount > 0 {
+			log.Printf("--> Got authoritative answer from server %s for %s", server, domainQuery)
+			// fmt.Println("-------------------")
+			// dns.PrintMessage(dnsParsedResponse)
+			// fmt.Println("-------------------")
+
 			return response, nil
 		}
 
-		if len(dnsParsedResponse.NameServers) > 0 {
-			authorityServers := extractAuthorityServers(dnsParsedResponse)
+		if dnsParsedResponse.Header.AdditionalRRCount > 0 {
+			authorityServers := extractAuthorityServerIPsFromAdditionals(dnsParsedResponse)
 			if len(authorityServers) > 0 {
 				return queryServers(authorityServers, dnsRequest)
 			}
@@ -52,38 +62,16 @@ func queryServers(serverList []string, dnsRequest []byte) (response []byte, err 
 	return nil, fmt.Errorf("failed to resolve DNS query")
 }
 
-func extractAuthorityServers(dnsMessage dns.Message) (serverList []string) {
-	// for _, authority := range dnsMessage.NameServers {
-	// 	if authority.RType == dns.NS {
-	// 		fmt.Printf("++ found a nameserver record: %d\n", authority.RType)
-	// 		nsRecord := authority.RData.String()
-	// 		fmt.Printf("++ NS RECORD: %s\n", nsRecord)
-	// 		ip, err := netip.ParseAddr(nsRecord)
-	// 		fmt.Printf("++ parsed IP: %v\n", ip)
-	// 		if err == nil {
-	// 			serverList = append(serverList, nsRecord)
-
-	// 			fmt.Printf("++ serverList: %v\n", serverList)
-
-	// 		}
-	// 	}
-	// }
+func extractAuthorityServerIPsFromAdditionals(dnsMessage dns.Message) (serverList []string) {
 	for _, additional := range dnsMessage.Additionals {
 		if additional.RType == dns.A {
-			fmt.Printf("++ found a nameserver record: %d\n", additional.RType)
 			aRecord := additional.RData.String()
-			fmt.Printf("++ NS RECORD: %s\n", aRecord)
-			ip, err := netip.ParseAddr(aRecord)
-			fmt.Printf("++ parsed IP: %v\n", ip)
+			_, err := netip.ParseAddr(aRecord)
 			if err == nil {
 				serverList = append(serverList, aRecord)
-
-				fmt.Printf("++ serverList: %v\n", serverList)
-
 			}
 		}
 	}
-	fmt.Printf("--- SERVER LIST: %v\n", serverList)
 	return serverList
 }
 
@@ -110,8 +98,6 @@ func sendDNSQuery(server string, dnsRequest []byte) (response []byte, err error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response from root server: %w", err)
 	}
-
-	fmt.Printf("Response received from root server was length: %d\n", n)
 
 	return receivedResponse[:n], nil
 }
